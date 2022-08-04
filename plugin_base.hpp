@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <string>
 
 class PluginBase
@@ -15,5 +14,3 @@ public:
 protected:
     std::string class_name = "PluginBase";
 };
-
-typedef std::unique_ptr<PluginBase> CreatePluginFunc();
