@@ -1,24 +1,45 @@
-#ifdef __APPLE__
-
 #include "plugin_base.hpp"
+
 #include <dlfcn.h>
+#include <filesystem>
 #include <iostream>
 #include <memory>
+#include <string>
+#include <vector>
 
 typedef std::unique_ptr<PluginBase> PluginCreateFunc();
 
+const std::string extention =
+    #ifdef __APPLE__
+    ".dylib";
+    #elif __linux__
+    ".so";
+    #endif
+
 int main(int argc, char** argv)
 {
-    const auto pluginA_dl = dlopen("libplugin_a.dylib", RTLD_LAZY);
-    auto pluginA_create = (PluginCreateFunc*)(dlsym(pluginA_dl, "create"));
-
+    std::vector<std::string> plugins;
+    auto dirs = std::filesystem::directory_iterator(std::filesystem::path("./"));
+    for (auto& dir : dirs)
     {
-        const auto& plugin = pluginA_create();
-
-        plugin->printMessage("test");
+        std::string path = dir.path().string();
+        if (path.find(extention.c_str()) != std::string::npos)
+        {
+            plugins.push_back(path);
+        }
     }
 
-    dlclose(pluginA_dl);
-}
+    for (auto plugin : plugins)
+    {
+        void* plugin_dl = dlopen(plugin.c_str(), RTLD_LAZY);
+        auto CreatePlugin = (PluginCreateFunc*)(dlsym(plugin_dl, "create"));
 
-#endif
+        {
+            const auto& plugin_instance = CreatePlugin();
+
+            plugin_instance->printMessage("test");
+        }
+
+        dlclose(plugin_dl);
+    }
+}
